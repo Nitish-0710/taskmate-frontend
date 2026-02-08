@@ -5,7 +5,7 @@ function DraggableCard(props) {
     // console.log(props)
     const [{ isDragging }, drag] = useDrag(() => ({
         type: "TASK",
-        item: { id: props.taskid },
+        item: { id: props.taskid, category: props.category},
         collect: (monitor) => ({
             isDragging: !!monitor.isDragging(),
         }),

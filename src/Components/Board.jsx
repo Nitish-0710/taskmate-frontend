@@ -6,15 +6,15 @@ import { theme } from "./Theme.js";
 import { useDarkMode } from "../Context/DarkModeContext";
 import { Container } from "react-bootstrap";
 import { Col, Row } from "react-bootstrap";
-import { loadTasks, saveTasks } from "../Utils/storage.jsx";
-
+import {
+  addTaskToServer,
+  getTaskFromServer,
+  updateTaskAtServer,
+  deletTaskFromServer
+} from "../services/taskServices.js";
 
 function Board() {
   const { darkMode } = useDarkMode();
-
-  const getColumnColors = (status) => {
-    darkMode ? theme[status].dark : theme[status].light;
-  };
 
   const [activeModal, setActiveModal] = React.useState(null);
 
@@ -22,12 +22,17 @@ function Board() {
     setActiveModal(title);
   }
 
-  const [tasks, setTasks] = React.useState(loadTasks());
+  const [tasks, setTasks] = React.useState([]);
+  React.useEffect(() => {
+    getTaskFromServer().then((initialItems) => {
+      setTasks(initialItems);
+    });
+  }, []);
+
+  // console.log(tasks)
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [date, setDate] = React.useState("");
-
-  const [nextId, setNextId] = React.useState(0);
 
   function handleTitleChange(event) {
     setTitle(event.target.value);
@@ -38,37 +43,30 @@ function Board() {
   }
 
   function handleDateChange(event) {
-    // console.log(event.target.value);
     setDate(event.target.value);
   }
 
-  function modalSubmit(header) {
+  async function modalSubmit(header) {
     if (isEditing) {
+      const updatedTask = await updateTaskAtServer(currentTask.id, {title: editTitle, description: editDescription, duedate: editDate, category: currentTask.category}); 
+
       setTasks((prevTasks) =>
         prevTasks.map((task) =>
           task.id === currentTask.id
-            ? {
-                ...task,
-                title: editTitle,
-                desc: editDescription,
-                duedate: editDate,
-              }
-            : task
-        )
+            ? updatedTask
+            : task,
+        ),
       );
       setIsEditing(false);
     } else {
-      setTasks((prevTasks) => [
-        ...prevTasks,
-        {
-          id: nextId,
-          title: title,
-          desc: description,
-          category: header,
-          duedate: date,
-        },
-      ]);
-      setNextId(nextId + 1);
+      const newTask = await addTaskToServer({
+        title,
+        description,
+        duedate: date,
+        category: header,
+      });
+
+      setTasks((prevTasks) => [...prevTasks, newTask]);
     }
 
     setTitle("");
@@ -86,9 +84,9 @@ function Board() {
   const [editDate, setEditDate] = React.useState(null);
 
   function editTask(id) {
-    console.log(id);
+    // console.log(id);
     const tasktoedit = tasks.find((task) => task.id === id);
-    console.log(tasktoedit);
+    // console.log(tasktoedit);
     if (tasktoedit) {
       setEditTitle(tasktoedit.title);
       setEditDescription(tasktoedit.desc);
@@ -99,29 +97,37 @@ function Board() {
     }
   }
 
-  function deleteTask(id) {
+  async function deleteTask(id) {
     const tasktodelete = tasks.find((t) => t.id === id);
+    if(!tasktodelete) return; 
+
     if (window.confirm(`Delete ${tasktodelete.title} permanently ?`)) {
+      await deletTaskFromServer(id)
       setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
     }
   }
 
   const handleTaskMove = (taskId, newCategory) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId ? { ...task, category: newCategory } : task
-      )
+  setTasks(prevTasks => {
+    const taskToMove = prevTasks.find(task => task.id === taskId);
+    if (!taskToMove) return prevTasks;
+
+    updateTaskAtServer(taskId, {
+      category: newCategory,
+      title: taskToMove.title,
+      description: taskToMove.desc,
+      duedate: taskToMove.duedate,
+    }).catch(err => {
+      console.error("Moving failed:", err);
+    });
+
+    return prevTasks.map(task =>
+      task.id === taskId
+        ? { ...task, category: newCategory }
+        : task
     );
-    console.log(tasks);
-  };
-
-  React.useEffect(() => {
-    saveTasks(tasks);
-  }, [tasks])
-
-
-
-
+  });
+};
 
 
   const colData = ColumnData.map((value) => {
@@ -171,9 +177,7 @@ function Board() {
   return (
     <>
       <Container>
-        <Row>
-          {colData}
-        </Row>
+        <Row>{colData}</Row>
       </Container>
     </>
   );

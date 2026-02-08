@@ -2,6 +2,7 @@ import Card from "react-bootstrap/Card";
 import EditButton from "./EditButton";
 import DeleteButton from "./DeleteButton";
 import { theme } from "./Theme";
+import formatDate from "../Utils/formatDate.js"
 
 // style={{ backgroundColor: '#ffe3e8' }}
 
@@ -25,7 +26,7 @@ function MyCard(props) {
                     <DeleteButton click={() => props.delete(props.id)} />
                 </div>
             </Card.Body>
-            <Card.Footer className="text-muted">{props.duedate}</Card.Footer>
+            <Card.Footer className="text-muted">{formatDate(props.duedate)}</Card.Footer>
         </Card>
     );
 }

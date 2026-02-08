@@ -4,6 +4,7 @@ import { useDrop } from "react-dnd";
 import { theme } from "./Theme";
 // import { useDarkMode } from "../Context/DarkModeContext";
 import { useDeviceType } from "../Hooks/UseDeviceType";
+import React from "react";
 
 function Column(props) {
 
@@ -14,6 +15,7 @@ function Column(props) {
     const [{ isOver }, drop] = useDrop(() => ({
         accept: "TASK",
         drop: (item) => {
+            // console.log("DROPPED", item, "IN", props.header);
             // Only update if moving to a different column
             if (item.category !== props.header) {
                 props.onTaskMove(item.id, props.header);
@@ -27,10 +29,12 @@ function Column(props) {
         }),
     }));
 
+    const deviceType = useDeviceType()
+
     const cards = props.alltasks
         .filter((task) => task.category === props.header)
         .map((task) => (
-            <>
+            <React.Fragment>
                 <DraggableCard
                     key={task.id}
                     taskid={task.id}
@@ -55,7 +59,7 @@ function Column(props) {
                         Drop task here
                     </div>
                 )}
-            </>
+            </React.Fragment>
         ));
 
     return (
@@ -64,7 +68,7 @@ function Column(props) {
             className="column"
             style={{
                 // backgroundColor: colors.primary, // Add opacity on hover
-                minHeight: useDeviceType ? "100px":"auto", 
+                minHeight: deviceType ? "100px" : "auto",
                 border: `3px solid ${colors}`,
                 borderRadius: "12px",
                 transition: "background-color 0.2s ease",
@@ -95,7 +99,7 @@ function Column(props) {
                               Drop task here
                           </div>
                       )}
-            </div>
+            </div>            
 
             <div className="columnFooter" style={{borderTop: `2px solid ${colors}`}}>
                 <AddButton
